@@ -1,0 +1,35 @@
+# ========================
+# 1. DEPENDENCIES
+# ========================
+node_modules/
+
+# ========================
+# 2. SECURITY & SECRETS (CRITICAL)
+# ========================
+.env
+.env.local
+.env.development
+.env.production
+*.pem
+
+# ========================
+# 3. BUILD OUTPUTS (Frontend)
+# ========================
+dist/
+dist-ssr/
+build/
+
+# ========================
+# 4. LOG FILES
+# ========================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================
+# 5. OS & EDITOR FILES
+# ========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
