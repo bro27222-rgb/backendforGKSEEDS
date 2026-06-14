@@ -6,6 +6,9 @@ const jwt = require('jsonwebtoken'); // Added JWT
 const upload = require('./middleware/upload');
 require('dotenv').config();
 
+// Add this at the top with your other models
+const Enquiry = require('./models/Enquiry');
+
 const Product = require('./models/Product');
 const Label = require('./models/Label');
 const User = require('./models/User');
@@ -144,6 +147,54 @@ app.get('/api/admin/stats', verifyToken, async (req, res) => {
     res.json(stats);
   } catch (error) {
     res.status(500).json({ error: "Stats failed" });
+  }
+});
+
+
+// ── PUBLIC ROUTE: Submit Enquiry ──
+app.post('/api/enquiry', async (req, res) => {
+  try {
+    await Enquiry.create(req.body);
+    res.status(201).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to submit enquiry" });
+  }
+});
+
+// ── ADMIN ROUTES: Manage Enquiries ──
+app.get('/api/admin/enquiries', verifyToken, async (req, res) => {
+  try {
+    const enquiries = await Enquiry.find().sort({ createdAt: -1 });
+    res.json(enquiries);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch enquiries" });
+  }
+});
+
+app.get('/api/admin/enquiries/unread-count', verifyToken, async (req, res) => {
+  try {
+    const count = await Enquiry.countDocuments({ isRead: false });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch count" });
+  }
+});
+
+app.put('/api/admin/enquiries/:id/read', verifyToken, async (req, res) => {
+  try {
+    await Enquiry.findByIdAndUpdate(req.params.id, { isRead: true });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update" });
+  }
+});
+
+app.delete('/api/admin/enquiries/:id', verifyToken, async (req, res) => {
+  try {
+    await Enquiry.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete" });
   }
 });
 
