@@ -6,6 +6,11 @@ const jwt = require('jsonwebtoken'); // Added JWT
 const upload = require('./middleware/upload');
 require('dotenv').config();
 
+const productionRoutes = require('./routes/production');
+const dryingRoutes = require('./routes/drying');
+
+
+
 // Add this at the top with your other models
 const Enquiry = require('./models/Enquiry');
 
@@ -197,6 +202,40 @@ app.delete('/api/admin/enquiries/:id', verifyToken, async (req, res) => {
     res.status(500).json({ error: "Failed to delete" });
   }
 });
+
+// postgres work
+
+app.get('/api/admin/test-postgres', async (req, res) => {
+  try {
+    // 1. Insert a test location into Neon
+    await db.insert(locations).values({
+      address_line: "Malleshwar cold storage",
+      village: "Erumadla",
+      mandal: "Warangal",
+      state: "Telangana",
+      pincode: 506001
+    });
+
+    // 2. Fetch all locations from Neon
+    const allLocations = await db.select().from(locations);
+
+    // 3. Send the result to the browser
+    res.json({
+      success: true,
+      message: "PostgreSQL is working perfectly!",
+      data: allLocations
+    });
+  } catch (error) {
+    console.error("Neon DB Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
+app.use('/api', productionRoutes);
+app.use('/api/drying', dryingRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server on ${PORT}`));
