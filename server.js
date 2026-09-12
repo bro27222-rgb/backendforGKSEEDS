@@ -25,7 +25,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB Atlas"))
   .catch(err => console.error("Database Connection Error:", err));
 
-app.get('/', (req, res) => res.send('srivishnu seeds Backend is LIVE'));
+app.get('/', (req, res) => res.send('GangaKaveri seeds Backend is LIVE'));
 
 // --- NEW SECURITY BOUNCER (MIDDLEWARE) ---
 const verifyToken = (req, res, next) => {
