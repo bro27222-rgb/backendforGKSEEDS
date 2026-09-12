@@ -6,8 +6,6 @@ const jwt = require('jsonwebtoken'); // Added JWT
 const upload = require('./middleware/upload');
 require('dotenv').config();
 
-const productionRoutes = require('./routes/production');
-const dryingRoutes = require('./routes/drying');
 
 
 
@@ -155,86 +153,6 @@ app.get('/api/admin/stats', verifyToken, async (req, res) => {
   }
 });
 
-
-// ── PUBLIC ROUTE: Submit Enquiry ──
-app.post('/api/enquiry', async (req, res) => {
-  try {
-    await Enquiry.create(req.body);
-    res.status(201).json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to submit enquiry" });
-  }
-});
-
-// ── ADMIN ROUTES: Manage Enquiries ──
-app.get('/api/admin/enquiries', verifyToken, async (req, res) => {
-  try {
-    const enquiries = await Enquiry.find().sort({ createdAt: -1 });
-    res.json(enquiries);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch enquiries" });
-  }
-});
-
-app.get('/api/admin/enquiries/unread-count', verifyToken, async (req, res) => {
-  try {
-    const count = await Enquiry.countDocuments({ isRead: false });
-    res.json({ count });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch count" });
-  }
-});
-
-app.put('/api/admin/enquiries/:id/read', verifyToken, async (req, res) => {
-  try {
-    await Enquiry.findByIdAndUpdate(req.params.id, { isRead: true });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update" });
-  }
-});
-
-app.delete('/api/admin/enquiries/:id', verifyToken, async (req, res) => {
-  try {
-    await Enquiry.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete" });
-  }
-});
-
-// postgres work
-
-app.get('/api/admin/test-postgres', async (req, res) => {
-  try {
-    // 1. Insert a test location into Neon
-    await db.insert(locations).values({
-      address_line: "Malleshwar cold storage",
-      village: "Erumadla",
-      mandal: "Warangal",
-      state: "Telangana",
-      pincode: 506001
-    });
-
-    // 2. Fetch all locations from Neon
-    const allLocations = await db.select().from(locations);
-
-    // 3. Send the result to the browser
-    res.json({
-      success: true,
-      message: "PostgreSQL is working perfectly!",
-      data: allLocations
-    });
-  } catch (error) {
-    console.error("Neon DB Error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-
-app.use('/api', productionRoutes);
-app.use('/api/drying', dryingRoutes);
 
 
 const PORT = process.env.PORT || 5000;
