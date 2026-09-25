@@ -16,13 +16,13 @@ const ProductSchema = new mongoose.Schema({
   unitSalePrice: { type: String, required: true },  
   netQty: { type: String, required: true },         
 
-  // Location and Manufacturer
-  packedAt: { type: String, required: true },       
+  // Location and Manufacturer (packedAt removed)
   plantAddress: { type: String, required: true },   
   producedBy: { type: String, required: true },     
 
-  // The PDF link from Cloudinary
+  // The PDF link and Label Data
   leafletUrl: { type: String, required: true },
+  labelRange: { type: String, default: "N/A" },
 
   // THIS IS REQUIRED to prevent Mongoose from dropping the data
   quantity: { type: Number, required: true },
