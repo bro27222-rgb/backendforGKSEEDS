@@ -58,7 +58,8 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (user && user.password === password) {
-      const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '8h' });
+      // CHANGED: Token now expires in 30 days
+      const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
       res.json({ success: true, token: token, message: "Login successful" });
     } else {
       res.status(401).json({ success: false, error: "Invalid email or password" });
@@ -87,11 +88,9 @@ app.post('/api/admin/generate', verifyToken, upload.none(), async (req, res) => 
     const p = req.body;
     const quantityToGenerate = parseInt(p.quantity);
     
-    // 1. Fetch current sequence for this specific lot
     let sequenceDoc = await LotSequence.findOne({ lotNumber: p.packedLotNumber });
     let currentNumber = sequenceDoc ? sequenceDoc.lastUsedNumber : 100000; 
 
-    // 2. Calculate the range
     const startLabel = currentNumber + 1;
     const endLabel = currentNumber + quantityToGenerate;
 
@@ -105,7 +104,7 @@ app.post('/api/admin/generate', verifyToken, upload.none(), async (req, res) => 
       mrp: p.mrp,
       unitSalePrice: p.unitSalePrice,
       netQty: p.netQty,
-      plantAddress: p.plantAddress, // packedAt is gone!
+      plantAddress: p.plantAddress,
       producedBy: p.producedBy,
       quantity: quantityToGenerate,
       leafletUrl: p.leaflet || "No Leaflet Provided",
@@ -120,7 +119,6 @@ app.post('/api/admin/generate', verifyToken, upload.none(), async (req, res) => 
       labelsToInsert.push({ _id: currentNumber.toString(), productId: newProduct._id });
     }
 
-    // 3. Update the sequence tracker in the database
     await LotSequence.updateOne(
       { lotNumber: productToSave.packedLotNumber },
       { $set: { lastUsedNumber: currentNumber } },
