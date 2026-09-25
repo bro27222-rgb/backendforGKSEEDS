@@ -1,7 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const upload = require('./middleware/upload');
 require('dotenv').config();
@@ -10,6 +9,7 @@ const Enquiry = require('./models/Enquiry');
 const Product = require('./models/Product');
 const Label = require('./models/Label');
 const User = require('./models/User');
+const LotSequence = require('./models/LotSequence'); // Added the new sequence tracker
 
 const app = express();
 
@@ -25,7 +25,6 @@ app.use(async (req, res, next) => {
       });
     } catch (err) {
       console.error("[DB Check] CRITICAL: Database Connection Error:", err);
-      // Send a 503 Service Unavailable with a specific message
       return res.status(503).json({ 
         success: false, 
         error: "Service Unavailable: Database connection failed. Please check MongoDB Atlas." 
@@ -107,6 +106,8 @@ app.get('/api/verify/:labelNo', async (req, res) => {
 app.post('/api/admin/generate', verifyToken, upload.none(), async (req, res) => {
   try {
     const p = req.body;
+    const quantityToGenerate = parseInt(p.quantity);
+    
     const productToSave = {
       cropName: p.productName || p.cropName,
       packedVariety: p.variety || p.packedVariety,
@@ -120,19 +121,42 @@ app.post('/api/admin/generate', verifyToken, upload.none(), async (req, res) => 
       packedAt: p.packedAt,
       plantAddress: p.plantAddress,
       producedBy: p.producedBy,
-      quantity: parseInt(p.quantity),
+      quantity: quantityToGenerate,
       leafletUrl: p.leaflet || "No Leaflet Provided" 
     };
 
+    console.log("[Admin Generate] Creating product document in MongoDB...");
     const newProduct = await Product.create(productToSave);
-    const labelsToInsert = [];
     
-    for (let i = 0; i < productToSave.quantity; i++) {
-      const randomId = crypto.randomBytes(6).toString('hex').toUpperCase(); 
-      labelsToInsert.push({ _id: randomId, productId: newProduct._id });
+    // --- NEW: Sequential Lot Number Tracking Logic ---
+    console.log(`[Admin Generate] Fetching sequence data for Lot Number: ${productToSave.packedLotNumber}...`);
+    let sequenceDoc = await LotSequence.findOne({ lotNumber: productToSave.packedLotNumber });
+    
+    let currentNumber = 100000; // Base starting point
+    if (sequenceDoc) {
+      currentNumber = sequenceDoc.lastUsedNumber;
+      console.log(`[Admin Generate] Existing lot found. Resuming sequence from: ${currentNumber}`);
+    } else {
+      console.log(`[Admin Generate] Brand new lot. Starting sequence at 100000.`);
     }
 
+    const labelsToInsert = [];
+    for (let i = 0; i < quantityToGenerate; i++) {
+      currentNumber++; // Increment safely
+      labelsToInsert.push({ _id: currentNumber.toString(), productId: newProduct._id });
+    }
+
+    // Save the new highest number back to the tracker
+    await LotSequence.updateOne(
+      { lotNumber: productToSave.packedLotNumber },
+      { $set: { lastUsedNumber: currentNumber } },
+      { upsert: true } // Creates the document if it didn't exist
+    );
+    console.log(`[Admin Generate] Updated sequence tracker. Next label for this lot will start after ${currentNumber}.`);
+
+    console.log("[Admin Generate] Inserting sequential labels into database...");
     const createdLabels = await Label.insertMany(labelsToInsert);
+
     res.status(201).json({ success: true, labelNumbers: createdLabels.map(l => l._id) });
 
   } catch (error) {
